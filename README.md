@@ -1,6 +1,6 @@
 # PostuVital
 
-Dispositivo vestible que mide **saturación de oxígeno (SpO2)**, **frecuencia cardiaca**, **temperatura corporal** y **postura cervical**, y muestra los datos en tiempo real en un dashboard con alertas.
+Proyecto de dispositivo vestible para medir **saturación de oxígeno (SpO2)**, **frecuencia cardiaca**, **temperatura corporal** y **postura cervical**, con la meta de mostrar los datos en tiempo real en un dashboard con alertas.
 
 **Materia:** Implementación de internet de las cosas (Gpo 501)
 
@@ -13,7 +13,7 @@ Dispositivo vestible que mide **saturación de oxígeno (SpO2)**, **frecuencia c
 
 ## Qué mide y para qué sirve
 
-Tres sensores se colocan en el dedo, la axila y la nuca. Un ESP32 en una banda al cuello los lee y envía los datos por WiFi con MQTT a Node-RED, que los procesa, los guarda y los muestra.
+La arquitectura propuesta coloca tres sensores en el dedo, la axila y la nuca. Un ESP32 en una banda al cuello leerá sus datos y los enviará por WiFi con MQTT a Node-RED para procesarlos, almacenarlos y visualizarlos. Esta integración completa sigue en desarrollo.
 
 La variable biomédica extra, elegida en la semana 1, es la **postura cervical**: avisa cuando la cabeza se mantiene inclinada por mucho tiempo, un problema común en quienes pasan horas con el celular o la laptop.
 
@@ -60,20 +60,34 @@ El MAX30102 va en la yema del dedo, el DS18B20 en la axila y el MPU6050 en la nu
 - [x] **Ficha de equipo:** equipo Pulso Binario, proyecto PostuVital, variables SpO2, frecuencia cardiaca y temperatura corporal.
 - [x] **Variable extra elegida (semana 1):** postura cervical con un MPU6050 en la nuca.
 - [x] **Arquitectura v1:** diagrama en cinco capas y tecnología por capa ([documento de la Etapa 1](docs/PostuVital_Arquitectura_v1.docx), entregado el 06/10/2026).
-- [ ] **Componentes:**
+- [x] **Etapa 2, pruebas individuales:** lecturas IR/Red del MAX30102 y temperatura del DS18B20 por monitor serial.
+- [x] **Etapa 2, conectividad:** prueba de WiFi, IP asignada y respuesta HTTP 200.
+- [x] **Etapa 2, documentación:** [reporte y evidencias](docs/etapa2/README.md).
+- [ ] **Pruebas de integración:** comprobar ambos sensores al mismo tiempo en el mismo montaje.
+- [ ] **Etapas posteriores:** obtener frecuencia cardiaca y SpO2 a partir de las señales ópticas; integrar MPU6050, MQTT, Node-RED y dashboard.
+
+**Componentes y pruebas realizadas:**
 
 | Componente | Estado |
 |---|---|
-| ESP32 DevKit V1 | Definido |
-| MAX30102 | Definido |
-| DS18B20 sumergible | Pedido |
-| MPU6050 | Pedido |
+| ESP32 DevKit V1 | Probado por serial y WiFi |
+| MAX30102 | Probado por separado (IR/Red) |
+| DS18B20 sumergible | Probado por separado (temperatura) |
+| MPU6050 | Planeado; sin evidencia de prueba en esta etapa |
+
+## Etapa 2: montaje y primeras lecturas
+
+- [Reporte de cierre de la etapa 2](docs/etapa2/Cierre_Etapa_2.pdf) (copia preparada para el repositorio, con credenciales ocultas).
+- [Diagrama de conexiones y fotografías](docs/etapa2/README.md).
+- [Código fuente del ESP32](firmware/README.md): prueba individual del MAX30102, prueba del DS18B20, prueba WiFi y un sketch para lectura conjunta todavía no validado físicamente.
+
+Las lecturas IR/Red son valores ópticos **sin convertir** a pulsaciones por minuto ni a SpO2. La prueba HTTP confirma conectividad, no el envío de datos biométricos. No se deben interpretar los valores como mediciones clínicas.
 
 ## Estructura del repositorio
 
 ```
 PostuVital/
-├── docs/        Documento de la Etapa 1 e imágenes de los diagramas
-├── firmware/    Código del ESP32 (Arduino IDE)
-└── nodered/     Flujos de Node-RED
+├── docs/        Arquitectura de Etapa 1 y reporte/evidencias de Etapa 2
+├── firmware/    Sketches del ESP32 (Arduino IDE)
+└── nodered/     Flujos de Node-RED (pendientes)
 ```
