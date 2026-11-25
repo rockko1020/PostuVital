@@ -18,10 +18,10 @@ Pulsera tipo reloj para **adultos mayores** que monitorea **frecuencia cardiaca*
 ```
 ESP32 --MQTT QoS 1 (reto2026/postuvital/data)--> Mosquitto --> Node-RED --> api.php --> MySQL (postuvital)
                                                                   |
-                                                                  +--> Dashboard (Node-RED, /ui)
+                                                                  +--> Dashboard (Node-RED, /ui; en construcción)
 ```
 
-El ESP32 lee los sensores, arma un JSON con ArduinoJson y lo publica por MQTT cada 5 segundos (de inmediato si detecta una caída). Node-RED lo recibe, lo reenvía a `api.php`, que lo guarda en MySQL y abre o cierra las alertas según los umbrales de la tabla `threshold`, y arma el dashboard.
+El ESP32 lee los sensores, arma un JSON con ArduinoJson y lo publica por MQTT cada 5 segundos (de inmediato si detecta una caída). Node-RED lo recibe, lo reenvía a `api.php`, que lo guarda en MySQL y abre o cierra las alertas según los umbrales de la tabla `threshold`, y alimenta el dashboard (en construcción).
 
 Ejemplo de mensaje:
 
@@ -64,8 +64,9 @@ Si un sensor no tiene lectura válida, ese campo no se envía.
 - [x] **Etapa 2:** pruebas individuales del MAX30102 y el DS18B20 por monitor serial, y conectividad WiFi con respuesta HTTP 200 ([reporte y evidencias](docs/etapa2/README.md)).
 - [x] **Cableado y lectura de sensores** (MAX30102, DS18B20 y MPU6050) en protoboard.
 - [x] **Esquema de datos y payload JSON** con ArduinoJson.
-- [x] **MQTT:** el ESP32 publica con QoS 1 y Last Will en `reto2026/postuvital/data` y `.../status`.
-- [x] **Base de datos MySQL**, flujo de Node-RED y dashboard funcionando de punta a punta.
+- [x] **Etapa 3:** esquema de datos, payload JSON con ArduinoJson y publicación por MQTT con QoS 1 y Last Will en `reto2026/postuvital/data` y `.../status` ([documentación y evidencias](docs/etapa3/README.md)).
+- [x] **MQTT → Node-RED → MySQL:** los mensajes recibidos se guardan en la base de datos.
+- [ ] **Dashboard de Node-RED:** en construcción.
 - [x] **Detección de caída simulada** con alerta que se abre y se cierra sola.
 - [ ] Armado de la pulsera: botón SOS, motor de vibración y caja.
 - [ ] Detección de inactividad y caída física real; ajustar umbrales.
@@ -76,7 +77,7 @@ Si un sensor no tiene lectura válida, ese campo no se envía.
 
 ```
 PostuVital/
-├── docs/        Etapa 1 (versión inicial, banda al cuello) y reporte y evidencias de la Etapa 2
+├── docs/        Etapa 1 (versión inicial, banda al cuello), Etapa 2 (etapa2/) y Etapa 3 (etapa3/)
 ├── firmware/    Sketch actual del ESP32 y sketches de prueba de la Etapa 2 (Arduino IDE)
 ├── mqtt/        Configuración del broker Mosquitto
 ├── nodered/     Flujo de Node-RED
@@ -87,9 +88,14 @@ PostuVital/
 
 1. Importar `db/schema.sql` en MySQL (**ojo:** empieza con `DROP DATABASE`, borra los datos) y cambiar `CAMBIA_ESTA_CONTRASENA` y `CAMBIA_ESTA_CLAVE` en `db/api.php` y en el flujo de Node-RED.
 2. Arrancar Mosquitto: `mosquitto -c mqtt/mosquitto_pv.conf`.
-3. Importar `nodered/flujo_postuvital.json` en Node-RED; el dashboard queda en `http://localhost:1880/ui`.
+3. Importar `nodered/flujo_postuvital.json` en Node-RED; el dashboard (en construcción) queda en `http://localhost:1880/ui`.
 4. En `firmware/enviarTemperatura_GET/enviarTemperatura_GET.ino` poner `WIFI_SSID`, `WIFI_PASS` y la IP de la laptop en `MQTT_HOST` (2.4 GHz). Subirlo al ESP32.
 5. Ver los mensajes: `mosquitto_sub -h <IP de la laptop> -t "reto2026/+/#" -v`.
+
+## Etapa 3: esquema de datos y MQTT
+
+- [Documentación de la Etapa 3](docs/etapa3/README.md): tabla de variables, ejemplos de payload, configuración de MQTT, QoS y evidencias.
+- [Sketch del ESP32](firmware/enviarTemperatura_GET/enviarTemperatura_GET.ino), [configuración de Mosquitto](mqtt/mosquitto_pv.conf), [flujo de Node-RED](nodered/flujo_postuvital.json) y [esquema de MySQL](db/schema.sql).
 
 ## Etapa 2: montaje y primeras lecturas
 

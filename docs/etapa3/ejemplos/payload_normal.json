@@ -1,0 +1,13 @@
+{
+  "device_id": "postuvital",
+  "mac": "68:09:47:E0:57:9C",
+  "ts": 1795554348,
+  "spo2": 97.0,
+  "hr": 72,
+  "temp_c": 36.6,
+  "acc_g": 1.02,
+  "roll": 2.5,
+  "pitch": -1.8,
+  "fall": false,
+  "alarm": false
+}
