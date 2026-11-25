@@ -61,6 +61,7 @@ Si un sensor no tiene lectura válida, ese campo no se envía.
 ## Avances
 
 - [x] **Etapa 1:** ficha de equipo y arquitectura v1 (documento en `docs/`, entregado el 06/10/2026).
+- [x] **Etapa 2:** pruebas individuales del MAX30102 y el DS18B20 por monitor serial, y conectividad WiFi con respuesta HTTP 200 ([reporte y evidencias](docs/etapa2/README.md)).
 - [x] **Cableado y lectura de sensores** (MAX30102, DS18B20 y MPU6050) en protoboard.
 - [x] **Esquema de datos y payload JSON** con ArduinoJson.
 - [x] **MQTT:** el ESP32 publica con QoS 1 y Last Will en `reto2026/postuvital/data` y `.../status`.
@@ -75,8 +76,8 @@ Si un sensor no tiene lectura válida, ese campo no se envía.
 
 ```
 PostuVital/
-├── docs/        Documento de la Etapa 1 e imágenes (versión inicial, banda al cuello)
-├── firmware/    Sketch del ESP32 (Arduino IDE)
+├── docs/        Etapa 1 (versión inicial, banda al cuello) y reporte y evidencias de la Etapa 2
+├── firmware/    Sketch actual del ESP32 y sketches de prueba de la Etapa 2 (Arduino IDE)
 ├── mqtt/        Configuración del broker Mosquitto
 ├── nodered/     Flujo de Node-RED
 └── db/          Esquema de MySQL y api.php (guarda las lecturas)
@@ -89,5 +90,13 @@ PostuVital/
 3. Importar `nodered/flujo_postuvital.json` en Node-RED; el dashboard queda en `http://localhost:1880/ui`.
 4. En `firmware/enviarTemperatura_GET/enviarTemperatura_GET.ino` poner `WIFI_SSID`, `WIFI_PASS` y la IP de la laptop en `MQTT_HOST` (2.4 GHz). Subirlo al ESP32.
 5. Ver los mensajes: `mosquitto_sub -h <IP de la laptop> -t "reto2026/+/#" -v`.
+
+## Etapa 2: montaje y primeras lecturas
+
+- [Reporte de cierre de la Etapa 2](docs/etapa2/Cierre_Etapa_2.pdf), con credenciales ocultas.
+- [Diagrama de conexiones y fotografías](docs/etapa2/README.md).
+- [Sketches de prueba](firmware/README.md): MAX30102, DS18B20, WiFi y lectura conjunta.
+
+En esa etapa los valores IR y Red del MAX30102 eran datos crudos, sin convertir a pulsaciones ni a SpO2; la conversión se hizo después en el sketch actual.
 
 > Este repositorio es público: **nunca** se suben contraseñas, claves ni capturas del IDE que las muestren. Los archivos llevan valores de relleno.
