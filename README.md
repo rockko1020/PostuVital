@@ -92,11 +92,6 @@ PostuVital/
 4. En `firmware/enviarTemperatura_GET/enviarTemperatura_GET.ino` poner `WIFI_SSID`, `WIFI_PASS` y la IP de la laptop en `MQTT_HOST` (2.4 GHz). Subirlo al ESP32.
 5. Ver los mensajes: `mosquitto_sub -h <IP de la laptop> -t "reto2026/+/#" -v`.
 
-## Etapa 3: esquema de datos y MQTT
-
-- [Documentación de la Etapa 3](docs/etapa3/README.md): tabla de variables, ejemplos de payload, configuración de MQTT, QoS y evidencias.
-- [Sketch del ESP32](firmware/enviarTemperatura_GET/enviarTemperatura_GET.ino), [configuración de Mosquitto](mqtt/mosquitto_pv.conf), [flujo de Node-RED](nodered/flujo_postuvital.json) y [esquema de MySQL](db/schema.sql).
-
 ## Etapa 2: montaje y primeras lecturas
 
 - [Reporte de cierre de la Etapa 2](docs/etapa2/Cierre_Etapa_2.pdf), con credenciales ocultas.
@@ -104,5 +99,10 @@ PostuVital/
 - [Sketches de prueba](firmware/README.md): MAX30102, DS18B20, WiFi y lectura conjunta.
 
 En esa etapa los valores IR y Red del MAX30102 eran datos crudos, sin convertir a pulsaciones ni a SpO2; la conversión se hizo después en el sketch actual.
+
+## Etapa 3: esquema de datos y MQTT
+
+- [Documentación de la Etapa 3](docs/etapa3/README.md): tabla de variables, ejemplos de payload, configuración de MQTT, QoS y evidencias.
+- [Sketch del ESP32](firmware/enviarTemperatura_GET/enviarTemperatura_GET.ino), [configuración de Mosquitto](mqtt/mosquitto_pv.conf), [flujo de Node-RED](nodered/flujo_postuvital.json) y [esquema de MySQL](db/schema.sql).
 
 > Este repositorio es público: **nunca** se suben contraseñas, claves ni capturas del IDE que las muestren. Los archivos llevan valores de relleno.
