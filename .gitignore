@@ -1,0 +1,10 @@
+# Capturas sueltas (pueden mostrar contrasenas o ser de Canvas)
+Screenshot*.png
+serial_monitor.png
+mosquitto.png
+
+# Archivos temporales de Word
+~$*
+
+# Copias locales de sketch con contrasenas
+*.bak*

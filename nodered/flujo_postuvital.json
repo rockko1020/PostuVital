@@ -1,0 +1,341 @@
+[
+  {
+    "id": "pv_tab",
+    "type": "tab",
+    "label": "PostuVital",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "pv_broker",
+    "type": "mqtt-broker",
+    "name": "Mosquitto PC",
+    "broker": "172.20.10.2",
+    "port": "1883",
+    "clientid": "nodered-pv",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "pv_in",
+    "type": "mqtt in",
+    "z": "pv_tab",
+    "name": "ESP32 reto2026/+/data",
+    "topic": "reto2026/+/data",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "pv_broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 160,
+    "y": 120,
+    "wires": [
+      [
+        "pv_prep",
+        "pv_dash"
+      ]
+    ]
+  },
+  {
+    "id": "pv_prep",
+    "type": "function",
+    "z": "pv_tab",
+    "name": "Preparar para MySQL (API)",
+    "func": "const d = msg.payload;\nif (typeof d !== \"object\" || d === null) return null;\nmsg.payload = {\n  clave: \"CAMBIA_ESTA_CLAVE\",\n  mac: d.mac,\n  bpm: d.hr,\n  spo2: d.spo2,\n  temp_c: d.temp_c,\n  acc_g: d.acc_g,\n  roll: d.roll,\n  pitch: d.pitch,\n  fall: d.fall ? 1 : 0,\n  inicio: !!d.inicio\n};\nmsg.headers = { \"Content-Type\": \"application/json\" };\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 60,
+    "wires": [
+      [
+        "pv_http"
+      ]
+    ]
+  },
+  {
+    "id": "pv_http",
+    "type": "http request",
+    "z": "pv_tab",
+    "name": "POST api.php (MySQL)",
+    "method": "POST",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "http://localhost/postuvital/api.php",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 680,
+    "y": 60,
+    "wires": [
+      [
+        "pv_dbg"
+      ]
+    ]
+  },
+  {
+    "id": "pv_dbg",
+    "type": "debug",
+    "z": "pv_tab",
+    "name": "Respuesta MySQL",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "payload",
+    "statusType": "auto",
+    "x": 930,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "pv_dash",
+    "type": "function",
+    "z": "pv_tab",
+    "name": "Separar para dashboard",
+    "func": "const d = msg.payload;\nif (typeof d !== \"object\" || d === null) return null;\nconst out = [null, null, null, null, null, null];\nif (d.spo2 !== undefined) out[0] = { payload: d.spo2 };\nif (d.hr !== undefined)   out[1] = { payload: d.hr };\nif (d.temp_c !== undefined) out[2] = { payload: d.temp_c };\nconst serie = [];\nif (d.hr !== undefined)   serie.push({ topic: \"Pulso (lpm)\", payload: d.hr });\nif (d.spo2 !== undefined) serie.push({ topic: \"SpO2 (%)\", payload: d.spo2 });\nif (serie.length) out[3] = serie;\nout[4] = { payload: d.fall ? \"CAIDA DETECTADA\" : (d.alarm ? \"Alarma: valores fuera de rango\" : \"Normal\") };\nout[5] = { payload: \"Aceleracion: \" + d.acc_g + \" g   |   Roll: \" + d.roll + \"   |   Pitch: \" + d.pitch };\nreturn out;",
+    "outputs": 6,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 240,
+    "wires": [
+      [
+        "pv_g_spo2"
+      ],
+      [
+        "pv_g_hr"
+      ],
+      [
+        "pv_g_temp"
+      ],
+      [
+        "pv_chart"
+      ],
+      [
+        "pv_t_estado"
+      ],
+      [
+        "pv_t_mov"
+      ]
+    ]
+  },
+  {
+    "id": "pv_ui_tab",
+    "type": "ui_tab",
+    "name": "PostuVital",
+    "icon": "dashboard",
+    "order": 1,
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "pv_ui_g1",
+    "type": "ui_group",
+    "name": "Signos vitales",
+    "tab": "pv_ui_tab",
+    "order": 1,
+    "disp": true,
+    "width": "6",
+    "collapse": false
+  },
+  {
+    "id": "pv_ui_g2",
+    "type": "ui_group",
+    "name": "Estado y movimiento",
+    "tab": "pv_ui_tab",
+    "order": 2,
+    "disp": true,
+    "width": "6",
+    "collapse": false
+  },
+  {
+    "id": "pv_g_spo2",
+    "type": "ui_gauge",
+    "z": "pv_tab",
+    "name": "SpO2",
+    "group": "pv_ui_g1",
+    "order": 1,
+    "width": 2,
+    "height": 3,
+    "gtype": "gage",
+    "title": "SpO2",
+    "label": "%",
+    "format": "{{value}}",
+    "min": 70,
+    "max": 100,
+    "colors": [
+      "#e74c3c",
+      "#f1c40f",
+      "#2ecc71"
+    ],
+    "seg1": 90,
+    "seg2": 95,
+    "x": 760,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "pv_g_hr",
+    "type": "ui_gauge",
+    "z": "pv_tab",
+    "name": "Pulso",
+    "group": "pv_ui_g1",
+    "order": 2,
+    "width": 2,
+    "height": 3,
+    "gtype": "gage",
+    "title": "Pulso",
+    "label": "lpm",
+    "format": "{{value}}",
+    "min": 40,
+    "max": 160,
+    "colors": [
+      "#2ecc71",
+      "#f1c40f",
+      "#e74c3c"
+    ],
+    "seg1": 100,
+    "seg2": 120,
+    "x": 760,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "pv_g_temp",
+    "type": "ui_gauge",
+    "z": "pv_tab",
+    "name": "Temperatura",
+    "group": "pv_ui_g1",
+    "order": 3,
+    "width": 2,
+    "height": 3,
+    "gtype": "gage",
+    "title": "Temperatura",
+    "label": "C",
+    "format": "{{value}}",
+    "min": 20,
+    "max": 42,
+    "colors": [
+      "#2ecc71",
+      "#f1c40f",
+      "#e74c3c"
+    ],
+    "seg1": 37.2,
+    "seg2": 38,
+    "x": 780,
+    "y": 240,
+    "wires": []
+  },
+  {
+    "id": "pv_chart",
+    "type": "ui_chart",
+    "z": "pv_tab",
+    "name": "Pulso y SpO2",
+    "group": "pv_ui_g1",
+    "order": 4,
+    "width": 6,
+    "height": 5,
+    "label": "Pulso y SpO2 en el tiempo",
+    "chartType": "line",
+    "legend": "true",
+    "xformat": "HH:mm:ss",
+    "interpolate": "linear",
+    "nodata": "Sin datos",
+    "dot": false,
+    "ymin": "",
+    "ymax": "",
+    "removeOlder": "10",
+    "removeOlderPoints": "",
+    "removeOlderUnit": "60",
+    "cutout": 0,
+    "useOneColor": false,
+    "useUTC": false,
+    "colors": [
+      "#1f77b4",
+      "#ff7f0e",
+      "#2ca02c",
+      "#d62728",
+      "#9467bd",
+      "#8c564b",
+      "#e377c2",
+      "#7f7f7f",
+      "#bcbd22",
+      "#17becf"
+    ],
+    "outputs": 1,
+    "useDifferentColor": false,
+    "className": "",
+    "x": 770,
+    "y": 280,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "pv_t_estado",
+    "type": "ui_text",
+    "z": "pv_tab",
+    "group": "pv_ui_g2",
+    "order": 1,
+    "width": 6,
+    "height": 2,
+    "name": "Estado",
+    "label": "Estado",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 770,
+    "y": 330,
+    "wires": []
+  },
+  {
+    "id": "pv_t_mov",
+    "type": "ui_text",
+    "z": "pv_tab",
+    "group": "pv_ui_g2",
+    "order": 2,
+    "width": 6,
+    "height": 2,
+    "name": "Movimiento",
+    "label": "Movimiento",
+    "format": "{{msg.payload}}",
+    "layout": "col-center",
+    "className": "",
+    "x": 780,
+    "y": 370,
+    "wires": []
+  }
+]

@@ -1,6 +1,8 @@
 # PostuVital
 
-Dispositivo vestible que mide **saturación de oxígeno (SpO2)**, **frecuencia cardiaca**, **temperatura corporal** y **postura cervical**, y muestra los datos en tiempo real en un dashboard con alertas.
+Pulsera tipo reloj para **adultos mayores** que monitorea **frecuencia cardiaca**, **saturación de oxígeno (SpO2)**, **temperatura de la piel** y **movimiento**, detecta **caídas** y muestra los datos en tiempo real en un dashboard con alertas. Más adelante tendrá un botón SOS, detección de inactividad y un motor de vibración para avisar al usuario.
+
+> **Cambio de rumbo (noviembre 2026):** la primera versión era una banda al cuello para medir la postura cervical. El profesor pidió una pulsera, así que el proyecto se reorientó. El documento de la Etapa 1 y su diagrama (`docs/`) corresponden a esa primera versión.
 
 **Materia:** Implementación de internet de las cosas (Gpo 501)
 
@@ -11,69 +13,81 @@ Dispositivo vestible que mide **saturación de oxígeno (SpO2)**, **frecuencia c
 | Rodrigo Herrera Ávila | A01803050 | Hardware y conectividad del lado del ESP32: circuito, lectura de sensores y envío por MQTT | 1 y 2 |
 | Alejandro Lazo de la Vega Martínez | A01804700 | Conectividad del lado del servidor, datos y visualización: broker, Node-RED, base de datos y dashboard | 2, 3 y 4 |
 
-## Qué mide y para qué sirve
+## Cómo funciona
 
-Tres sensores se colocan en el dedo, la axila y la nuca. Un ESP32 en una banda al cuello los lee y envía los datos por WiFi con MQTT a Node-RED, que los procesa, los guarda y los muestra.
+```
+ESP32 --MQTT QoS 1 (reto2026/postuvital/data)--> Mosquitto --> Node-RED --> api.php --> MySQL (postuvital)
+                                                                  |
+                                                                  +--> Dashboard (Node-RED, /ui)
+```
 
-La variable biomédica extra, elegida en la semana 1, es la **postura cervical**: avisa cuando la cabeza se mantiene inclinada por mucho tiempo, un problema común en quienes pasan horas con el celular o la laptop.
+El ESP32 lee los sensores, arma un JSON con ArduinoJson y lo publica por MQTT cada 5 segundos (de inmediato si detecta una caída). Node-RED lo recibe, lo reenvía a `api.php`, que lo guarda en MySQL y abre o cierra las alertas según los umbrales de la tabla `threshold`, y arma el dashboard.
 
-Está pensado para **estudiantes y oficinistas** que quieren monitorear su salud y su postura para prevenir problemas de cuello.
+Ejemplo de mensaje:
 
-| Variable | Visualización | Alerta de ejemplo |
-|---|---|---|
-| SpO2 | Gráfica en vivo y semáforo | Menor a 92 % |
-| Frecuencia cardiaca | Gráfica en vivo y semáforo | Fuera de 50 a 120 lpm |
-| Temperatura | Gráfica en vivo y semáforo | 37.5 °C o más |
-| Postura cervical | Ángulo en vivo y semáforo | Más de 20° durante varios minutos |
+```json
+{"device_id":"postuvital","mac":"68:09:47:E0:57:9C","ts":1795636784,"spo2":93.0,"hr":68,"temp_c":33.8,"acc_g":1.05,"roll":102.7,"pitch":-19.7,"fall":false,"alarm":false}
+```
 
-*Los umbrales son ejemplos y se ajustan durante las pruebas.*
-
-## Arquitectura (v1)
-
-![Arquitectura v1 en cinco capas](docs/img/arquitectura_v1.png)
-
-Los datos bajan por cinco capas: los sensores los miden, el ESP32 los envía por MQTT, Node-RED los procesa y guarda, el dashboard los muestra y la capa de negocio define para quién sirven.
-
-## Tecnología por capa
-
-| Capa | Componente | Tecnología | Por qué |
+| Campo | Unidad | Tipo | Rango normal |
 |---|---|---|---|
-| 1. Percepción | Sensor de SpO2 y pulso | MAX30102 | Un solo módulo mide las dos variables |
-| 1. Percepción | Sensor de temperatura | DS18B20 sumergible | Barato, con cable y librerías sencillas |
-| 1. Percepción | Sensor de postura (variable extra) | MPU6050 | Acelerómetro y giroscopio para calcular la inclinación del cuello |
-| 2. Red | Microcontrolador | ESP32 DevKit V1 | WiFi integrado, 3.3 V y se programa en Arduino IDE |
-| 2. Red | Protocolo | MQTT sobre WiFi 2.4 GHz | Estándar de IoT, ligero y con mensajes JSON |
-| 2. Red | Broker | Mosquitto | Gratuito y compatible con Node-RED |
-| 3. Procesamiento | Lógica de datos | Node-RED | Programación por bloques: promedio móvil, ángulo del cuello y umbrales |
-| 3. Procesamiento | Base de datos | InfluxDB (propuesta) | Pensada para series de tiempo y con nodo para Node-RED |
-| 4. Aplicación | Dashboard | Dashboard de Node-RED | Gráficas en tiempo real, semáforo y alertas, desde el navegador |
-| 5. Negocio | Usuarios y propósito | Estudiantes y oficinistas | Monitoreo de salud y postura para prevenir problemas de cuello |
+| `device_id` | - | texto | `postuvital` |
+| `ts` | segundos (Unix) | entero | hora real por NTP |
+| `spo2` | % | decimal | 95 - 100 |
+| `hr` | lpm | entero | 60 - 100 |
+| `temp_c` | °C | decimal | 36.1 - 37.2 (referencia del reto; se ajustará para la muñeca, que marca ~33 - 35 °C) |
+| `acc_g` | g | decimal | cerca de 1 g en reposo |
+| `roll`, `pitch` | grados | decimal | informativos |
+| `fall` | - | booleano | `false` |
+| `alarm` | - | booleano | `false` |
 
-## Ubicación en el cuerpo
+Si un sensor no tiene lectura válida, ese campo no se envía.
 
-![Ubicación de los componentes en el cuerpo](docs/img/render_cuerpo.png)
+## Tecnología
 
-El MAX30102 va en la yema del dedo, el DS18B20 en la axila y el MPU6050 en la nuca; el ESP32 va en una banda al cuello. Es un esquema: la ubicación final se ajusta al armar el prototipo.
+| Capa | Componente | Tecnología |
+|---|---|---|
+| 1. Percepción | Pulso y SpO2 | MAX30102 (abajo de la caja, tocando la muñeca) |
+| 1. Percepción | Temperatura de la piel | DS18B20 |
+| 1. Percepción | Movimiento y caídas | MPU6050 (dentro de la caja) |
+| 2. Red | Microcontrolador | ESP32 DevKit (WiFi 2.4 GHz) |
+| 2. Red | Protocolo y broker | MQTT con QoS 1, Mosquitto |
+| 3. Procesamiento | Recepción, dashboard y reenvío | Node-RED |
+| 3. Procesamiento | Guardado y alertas por umbral | PHP (`api.php`) |
+| 3. Procesamiento | Base de datos | MySQL / MariaDB (XAMPP) |
+| 4. Aplicación | Dashboard | Dashboard de Node-RED |
+| 5. Negocio | Usuarios | Adultos mayores y sus cuidadores |
 
 ## Avances
 
-- [x] **Ficha de equipo:** equipo Pulso Binario, proyecto PostuVital, variables SpO2, frecuencia cardiaca y temperatura corporal.
-- [x] **Variable extra elegida (semana 1):** postura cervical con un MPU6050 en la nuca.
-- [x] **Arquitectura v1:** diagrama en cinco capas y tecnología por capa ([documento de la Etapa 1](docs/PostuVital_Arquitectura_v1.docx), entregado el 06/10/2026).
-- [ ] **Componentes:**
-
-| Componente | Estado |
-|---|---|
-| ESP32 DevKit V1 | Definido |
-| MAX30102 | Definido |
-| DS18B20 sumergible | Pedido |
-| MPU6050 | Pedido |
+- [x] **Etapa 1:** ficha de equipo y arquitectura v1 (documento en `docs/`, entregado el 06/10/2026).
+- [x] **Cableado y lectura de sensores** (MAX30102, DS18B20 y MPU6050) en protoboard.
+- [x] **Esquema de datos y payload JSON** con ArduinoJson.
+- [x] **MQTT:** el ESP32 publica con QoS 1 y Last Will en `reto2026/postuvital/data` y `.../status`.
+- [x] **Base de datos MySQL**, flujo de Node-RED y dashboard funcionando de punta a punta.
+- [x] **Detección de caída simulada** con alerta que se abre y se cierra sola.
+- [ ] Armado de la pulsera: botón SOS, motor de vibración y caja.
+- [ ] Detección de inactividad y caída física real; ajustar umbrales.
+- [ ] Esquema de base de datos y tópicos por sensor para la pulsera.
+- [ ] Funcionar sin la laptop (broker en internet) y conexión a la red Tec-IoT.
 
 ## Estructura del repositorio
 
 ```
 PostuVital/
-├── docs/        Documento de la Etapa 1 e imágenes de los diagramas
-├── firmware/    Código del ESP32 (Arduino IDE)
-└── nodered/     Flujos de Node-RED
+├── docs/        Documento de la Etapa 1 e imágenes (versión inicial, banda al cuello)
+├── firmware/    Sketch del ESP32 (Arduino IDE)
+├── mqtt/        Configuración del broker Mosquitto
+├── nodered/     Flujo de Node-RED
+└── db/          Esquema de MySQL y api.php (guarda las lecturas)
 ```
+
+## Cómo probarlo
+
+1. Importar `db/schema.sql` en MySQL (**ojo:** empieza con `DROP DATABASE`, borra los datos) y cambiar `CAMBIA_ESTA_CONTRASENA` y `CAMBIA_ESTA_CLAVE` en `db/api.php` y en el flujo de Node-RED.
+2. Arrancar Mosquitto: `mosquitto -c mqtt/mosquitto_pv.conf`.
+3. Importar `nodered/flujo_postuvital.json` en Node-RED; el dashboard queda en `http://localhost:1880/ui`.
+4. En `firmware/enviarTemperatura_GET/enviarTemperatura_GET.ino` poner `WIFI_SSID`, `WIFI_PASS` y la IP de la laptop en `MQTT_HOST` (2.4 GHz). Subirlo al ESP32.
+5. Ver los mensajes: `mosquitto_sub -h <IP de la laptop> -t "reto2026/+/#" -v`.
+
+> Este repositorio es público: **nunca** se suben contraseñas, claves ni capturas del IDE que las muestren. Los archivos llevan valores de relleno.
